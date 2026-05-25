@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TikTok LIVE Connector</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#fe2c55">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LIVE Connector">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --surface2: #1a1a26;
+  --border: #2a2a3e;
+  --accent: #fe2c55;
+  --accent2: #25f4ee;
+  --text: #f0f0f8;
+  --text2: #8888aa;
+  --green: #00e676;
+  --yellow: #ffd600;
+  --radius: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 50% at 20% -10%, #fe2c5520 0%, transparent 60%),
+              radial-gradient(ellipse 60% 40% at 80% 110%, #25f4ee18 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* WELCOME SCREEN */
+#welcome {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  background: var(--bg);
+}
+.welcome-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 48px;
+  width: 400px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.welcome-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+.logo-area { margin-bottom: 32px; }
+.logo-area .icon { font-size: 48px; margin-bottom: 12px; }
+.logo-area h1 { font-size: 22px; font-weight: 700; }
+.logo-area p { color: var(--text2); font-size: 14px; margin-top: 6px; }
+.welcome-card input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  margin-bottom: 12px;
+  outline: none;
+  transition: border-color .2s;
+}
+.welcome-card input:focus { border-color: var(--accent); }
+.btn-connect {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s, transform .1s;
+}
+.btn-connect:hover { opacity: .9; transform: translateY(-1px); }
+.btn-connect:active { transform: translateY(0); }
+
+/* MAIN APP */
+#app { display: none; position: relative; z-index: 1; }
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-left .logo { font-size: 20px; font-weight: 700; }
+.status-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text2); }
+.status-badge.connected .status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-badge.error .status-dot { background: var(--accent); }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.btn-sm {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  transition: all .2s;
+}
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+.btn-sm.danger { border-color: var(--accent); color: var(--accent); }
+.btn-sm.danger:hover { background: var(--accent); color: #fff; }
+
+/* TABS */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 16px 24px 0;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 10px 20px;
+  border-radius: 8px 8px 0 0;
+  font-size: 14px; font-weight: 500;
+  cursor: pointer;
+  color: var(--text2);
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: none;
+  font-family: inherit;
+  transition: all .2s;
+}
+.tab.active {
+  color: var(--text);
+  background: var(--surface2);
+  border-color: var(--border);
+}
+.tab:hover:not(.active) { color: var(--text); }
+
+/* CONTENT */
+.content { padding: 24px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* CARDS */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* TTS SETTINGS */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-label { font-size: 14px; font-weight: 500; }
+.setting-label small { display: block; color: var(--text2); font-size: 12px; font-weight: 400; margin-top: 2px; }
+.setting-control { display: flex; align-items: center; gap: 12px; }
+select, input[type="range"] {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  cursor: pointer;
+}
+select:focus { border-color: var(--accent2); }
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 120px; height: 4px;
+  padding: 0; border: none;
+  background: var(--border);
+  border-radius: 2px;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent2);
+  cursor: pointer;
+}
+.range-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--accent2);
+  min-width: 36px;
+  text-align: right;
+}
+.toggle {
+  position: relative;
+  width: 44px; height: 24px;
+  cursor: pointer;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: var(--border);
+  border-radius: 12px;
+  transition: .3s;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  left: 3px; top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: .3s;
+}
+.toggle input:checked + .toggle-slider { background: var(--accent2); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+/* SOUND MAP */
+.sound-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  text-align: center;
+  transition: border-color .2s;
+}
+.sound-upload-area:hover { border-color: var(--accent2); }
+.sound-upload-area p { color: var(--text2); font-size: 14px; margin-bottom: 12px; }
+.upload-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.upload-row input[type="text"] {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+.upload-row input[type="text"]:focus { border-color: var(--accent2); }
+.btn-upload {
+  padding: 10px 18px;
+  background: var(--accent2);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-upload:hover { opacity: .85; }
+input[type="file"] { display: none; }
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+  transition: border-color .2s;
+}
+.file-label:hover { border-color: var(--accent2); }
+
+.sound-list { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.sound-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.sound-item-name { font-size: 13px; font-weight: 600; color: var(--accent2); }
+.sound-item-file { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.sound-item-actions { display: flex; gap: 6px; }
+.btn-play {
+  padding: 5px 10px;
+  background: none;
+  border: 1px solid var(--accent2);
+  color: var(--accent2);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-delete {
+  padding: 5px 10px;
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* OVERLAY LINKS */
+.overlay-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.overlay-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: border-color .2s;
+}
+.overlay-card:hover { border-color: var(--accent2); }
+.overlay-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.overlay-card p { font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+.overlay-url {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--accent2);
+  background: var(--bg);
+  padding: 6px 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  word-break: break-all;
+}
+.btn-copy {
+  width: 100%;
+  padding: 7px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .2s;
+}
+.btn-copy:hover { border-color: var(--accent2); color: var(--accent2); }
+
+/* EVENTS LOG */
+#events-log { display: flex; flex-direction: column; gap: 6px; max-height: 500px; overflow-y: auto; }
+.event-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border-left: 3px solid var(--border);
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  animation: slideIn .3s ease;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.event-item.gift { border-left-color: var(--yellow); }
+.event-item.follow { border-left-color: var(--green); }
+.event-item.subscribe { border-left-color: #aa44ff; }
+.event-item.chat { border-left-color: var(--accent2); }
+.event-item.share { border-left-color: #ff9800; }
+.event-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.event-body strong { font-weight: 600; }
+.event-body small { color: var(--text2); font-size: 11px; margin-left: 6px; }
+.empty-state { text-align: center; color: var(--text2); padding: 40px; font-size: 14px; }
+
+/* TEST BUTTON */
+.btn-test {
+  padding: 10px 18px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: all .2s;
+}
+.btn-test:hover { border-color: var(--accent2); color: var(--accent2); }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  padding: 12px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  z-index: 999;
+  animation: toastIn .3s ease;
+  max-width: 300px;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.error { border-color: var(--accent); color: var(--accent); }
+</style>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
+</head>
+<body>
+
+<!-- WELCOME SCREEN -->
+<div id="welcome">
+  <div class="welcome-card">
+    <div class="logo-area">
+      <div class="icon">🎵</div>
+      <h1>TikTok LIVE Connector</h1>
+      <p>Masukkan username TikTok untuk mulai</p>
+    </div>
+    <input type="text" id="usernameInput" placeholder="@username_tiktok" autocomplete="off">
+    <button class="btn-connect" onclick="connectTikTok()">🚀 MULAI CONNECT</button>
+    <p id="welcomeError" style="color:var(--accent);font-size:13px;margin-top:12px;display:none;"></p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="logo">🎵 TikTok LIVE</span>
+      <div class="status-badge" id="statusBadge">
+        <div class="status-dot"></div>
+        <span id="statusText">Menghubungkan...</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-sm" onclick="testEvent()">🧪 Test Event</button>
+      <button class="btn-sm danger" onclick="disconnect()">⏹ Stop</button>
+    </div>
+  </div>
+
+
+  <!-- NGROK BANNER -->
+  <div id="ngrokBanner" style="display:none; background:linear-gradient(90deg,#0d2020,#0d1020); border-bottom:1px solid rgba(37,244,238,.3); padding:8px 20px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <span style="font-size:11px; color:#25f4ee; font-weight:700; letter-spacing:.05em;">🌐 URL PUBLIK (bagikan ke teman):</span>
+    <code id="ngrokUrl" style="font-size:12px; color:#fff; background:rgba(255,255,255,.08); padding:3px 10px; border-radius:6px; border:1px solid rgba(37,244,238,.3); flex:1; min-width:200px;"></code>
+    <button onclick="copyNgrok()" style="background:#25f4ee; color:#000; border:none; border-radius:6px; padding:4px 12px; font-size:11px; font-weight:700; cursor:pointer;">📋 Salin</button>
+    <span style="font-size:10px; color:#888;">Teman buka URL ini di browser HP</span>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('events', this)">📡 Events Live</button>
+    <button class="tab" onclick="showTab('tts', this)">🔊 Pengaturan TTS</button>
+    <button class="tab" onclick="showTab('sounds', this)">🎵 Custom Audio Gift</button>
+    <button class="tab" onclick="showTab('overlays', this)">🖥️ Overlay OBS</button>
+  </div>
+
+  <div class="content">
+    <!-- EVENTS TAB -->
+    <div class="tab-panel active" id="panel-events">
+      <div id="events-log">
+        <div class="empty-state">⏳ Menunggu events dari TikTok LIVE...</div>
+      </div>
+    </div>
+
+    <!-- TTS TAB -->
+    <div class="tab-panel" id="panel-tts">
+      <div class="card">
+        <div class="card-title">🔊 Text-to-Speech Settings</div>
+
+        <div class="setting-row">
+          <div class="setting-label">
+            TTS Aktif
+            <small>Bacakan pesan chat & event secara otomatis</small>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="ttsEnabled" checked onchange="saveTTSSettings()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">
+            Suara (Voice)
+            <small>Pilih suara yang tersedia di browser</small>
+          </div>
+          <div class="setting-control">
+            <select id="ttsVoice" onchange="saveTTSSettings()">
+              <option value="">Loading voices...</option>
+            </select>
+            <button class="btn-sm" onclick="previewTTS()">▶ Preview</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">
+            Kecepatan (Rate)
+            <small>Seberapa cepat TTS berbicara</small>
+          </div>
+          <div class="setting-control">
+            <input type="range" id="ttsRate" min="0.5" max="2" step="0.1" value="1" oninput="updateRange('ttsRate','rateVal'); saveTTSSettings()">
+            <span class="range-val" id="rateVal">1.0x</span>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">
+            Nada (Pitch)
+            <small>Tinggi rendahnya suara TTS</small>
+          </div>
+          <div class="setting-control">
+            <input type="range" id="ttsPitch" min="0.5" max="2" step="0.1" value="1" oninput="updateRange('ttsPitch','pitchVal'); saveTTSSettings()">
+            <span class="range-val" id="pitchVal">1.0</span>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">
+            Volume
+            <small>Keras pelan suara TTS</small>
+          </div>
+          <div class="setting-control">
+            <input type="range" id="ttsVolume" min="0" max="1" step="0.1" value="1" oninput="updateRange('ttsVolume','volumeVal'); saveTTSSettings()">
+            <span class="range-val" id="volumeVal">1.0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📢 TTS untuk Event Apa Saja</div>
+        <div class="setting-row">
+          <div class="setting-label">Chat</div>
+          <label class="toggle"><input type="checkbox" id="ttsChat" checked onchange="saveTTSSettings()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">Gift</div>
+          <label class="toggle"><input type="checkbox" id="ttsGift" checked onchange="saveTTSSettings()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">Follow</div>
+          <label class="toggle"><input type="checkbox" id="ttsFollow" checked onchange="saveTTSSettings()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">Subscribe</div>
+          <label class="toggle"><input type="checkbox" id="ttsSubscribe" checked onchange="saveTTSSettings()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">Share</div>
+          <label class="toggle"><input type="checkbox" id="ttsShare" checked onchange="saveTTSSettings()"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">✏️ Template Pesan TTS</div>
+        <div class="setting-row">
+          <div class="setting-label">Gift<small>Gunakan {user}, {gift}, {count}</small></div>
+          <input type="text" id="tmplGift" value="{user} kirim {gift} sebanyak {count}" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;width:280px;outline:none;" oninput="saveTTSSettings()">
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">Follow<small>Gunakan {user}</small></div>
+          <input type="text" id="tmplFollow" value="{user} baru follow!" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;width:280px;outline:none;" oninput="saveTTSSettings()">
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">Subscribe<small>Gunakan {user}</small></div>
+          <input type="text" id="tmplSubscribe" value="{user} subscribe sekarang!" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;width:280px;outline:none;" oninput="saveTTSSettings()">
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">Share<small>Gunakan {user}</small></div>
+          <input type="text" id="tmplShare" value="{user} share live kita!" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;width:280px;outline:none;" oninput="saveTTSSettings()">
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOM SOUNDS TAB -->
+    <div class="tab-panel" id="panel-sounds">
+      <div class="card">
+        <div class="card-title">🎵 Upload Audio Custom per Gift</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">
+          Upload file audio (MP3/WAV/OGG) untuk diputar otomatis ketika ada gift tertentu. Kosongkan nama gift untuk set sebagai audio default semua gift.
+        </p>
+        <div class="sound-upload-area">
+          <p>📁 Pilih file audio lalu isi nama gift yang sesuai</p>
+          <div class="upload-row">
+            <input type="text" id="giftNameInput" placeholder="Nama gift (contoh: Rose, TikTok Universe) — kosong = default">
+            <label class="file-label" for="audioFile">🎵 Pilih Audio</label>
+            <input type="file" id="audioFile" accept=".mp3,.wav,.ogg,.m4a" onchange="updateFileName()">
+            <button class="btn-upload" onclick="uploadSound()">Upload</button>
+          </div>
+          <div id="selectedFileName" style="font-size:12px;color:var(--accent2);margin-top:4px;"></div>
+        </div>
+
+        <div class="sound-list" id="soundList">
+          <div class="empty-state">Belum ada custom audio. Upload dulu!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OVERLAYS TAB -->
+    <div class="tab-panel" id="panel-overlays">
+      <div class="card">
+        <div class="card-title">🖥️ URL Overlay untuk OBS Browser Source</div>
+        <div class="overlay-grid" id="overlayGrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let ws = null;
+let ttsSettings = {};
+let voices = [];
+let soundMap = {};
+
+// ── TTS ──────────────────────────────────────────
+function loadVoices() {
+  voices = window.speechSynthesis.getVoices();
+  const sel = document.getElementById('ttsVoice');
+  sel.innerHTML = '';
+  if (!voices.length) {
+    sel.innerHTML = '<option value="">Tidak ada voice tersedia</option>';
+    return;
+  }
+  voices.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.text = `${v.name} (${v.lang})`;
+    sel.appendChild(opt);
+  });
+  const saved = localStorage.getItem('tts_voice');
+  if (saved) sel.value = saved;
+}
+window.speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+
+function updateRange(inputId, valId) {
+  const val = parseFloat(document.getElementById(inputId).value);
+  const label = inputId === 'ttsRate' ? val.toFixed(1)+'x' : val.toFixed(1);
+  document.getElementById(valId).textContent = label;
+}
+
+function saveTTSSettings() {
+  ttsSettings = {
+    enabled: document.getElementById('ttsEnabled').checked,
+    voice: document.getElementById('ttsVoice').value,
+    rate: parseFloat(document.getElementById('ttsRate').value),
+    pitch: parseFloat(document.getElementById('ttsPitch').value),
+    volume: parseFloat(document.getElementById('ttsVolume').value),
+    chat: document.getElementById('ttsChat').checked,
+    gift: document.getElementById('ttsGift').checked,
+    follow: document.getElementById('ttsFollow').checked,
+    subscribe: document.getElementById('ttsSubscribe').checked,
+    share: document.getElementById('ttsShare').checked,
+    tmplGift: document.getElementById('tmplGift').value,
+    tmplFollow: document.getElementById('tmplFollow').value,
+    tmplSubscribe: document.getElementById('tmplSubscribe').value,
+    tmplShare: document.getElementById('tmplShare').value,
+  };
+  localStorage.setItem('tts_settings', JSON.stringify(ttsSettings));
+}
+
+function loadTTSSettings() {
+  const saved = localStorage.getItem('tts_settings');
+  if (!saved) return;
+  const s = JSON.parse(saved);
+  Object.assign(ttsSettings, s);
+  document.getElementById('ttsEnabled').checked = s.enabled ?? true;
+  if (s.voice !== undefined) document.getElementById('ttsVoice').value = s.voice;
+  document.getElementById('ttsRate').value = s.rate ?? 1;
+  document.getElementById('ttsPitch').value = s.pitch ?? 1;
+  document.getElementById('ttsVolume').value = s.volume ?? 1;
+  document.getElementById('ttsChat').checked = s.chat ?? true;
+  document.getElementById('ttsGift').checked = s.gift ?? true;
+  document.getElementById('ttsFollow').checked = s.follow ?? true;
+  document.getElementById('ttsSubscribe').checked = s.subscribe ?? true;
+  document.getElementById('ttsShare').checked = s.share ?? true;
+  if (s.tmplGift) document.getElementById('tmplGift').value = s.tmplGift;
+  if (s.tmplFollow) document.getElementById('tmplFollow').value = s.tmplFollow;
+  if (s.tmplSubscribe) document.getElementById('tmplSubscribe').value = s.tmplSubscribe;
+  if (s.tmplShare) document.getElementById('tmplShare').value = s.tmplShare;
+  updateRange('ttsRate','rateVal');
+  updateRange('ttsPitch','pitchVal');
+  updateRange('ttsVolume','volumeVal');
+}
+
+function speak(text) {
+  if (!ttsSettings.enabled) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  const voiceIdx = document.getElementById('ttsVoice').value;
+  if (voiceIdx !== '' && voices[voiceIdx]) utt.voice = voices[voiceIdx];
+  utt.rate = ttsSettings.rate ?? 1;
+  utt.pitch = ttsSettings.pitch ?? 1;
+  utt.volume = ttsSettings.volume ?? 1;
+  window.speechSynthesis.speak(utt);
+}
+
+function previewTTS() {
+  saveTTSSettings();
+  speak('Halo! Ini adalah preview suara TTS kamu. Sesuaikan kecepatan dan nada sesuai selera!');
+}
+
+function buildTTS(event) {
+  const s = ttsSettings;
+  const name = event.nickname || event.user;
+  if (event.type === 'chat' && s.chat) return `${name} bilang: ${event.comment}`;
+  if (event.type === 'gift' && s.gift) return (s.tmplGift||'{user} kirim {gift}').replace('{user}',name).replace('{gift}',event.giftName).replace('{count}',event.repeatCount||1);
+  if (event.type === 'follow' && s.follow) return (s.tmplFollow||'{user} baru follow!').replace('{user}',name);
+  if (event.type === 'subscribe' && s.subscribe) return (s.tmplSubscribe||'{user} subscribe!').replace('{user}',name);
+  if (event.type === 'share' && s.share) return (s.tmplShare||'{user} share live!').replace('{user}',name);
+  return null;
+}
+
+// ── CUSTOM AUDIO ─────────────────────────────────
+function updateFileName() {
+  const f = document.getElementById('audioFile').files[0];
+  document.getElementById('selectedFileName').textContent = f ? `✅ ${f.name}` : '';
+}
+
+async function uploadSound() {
+  const file = document.getElementById('audioFile').files[0];
+  if (!file) { showToast('Pilih file audio dulu!', 'error'); return; }
+  const giftName = document.getElementById('giftNameInput').value.trim() || '__default__';
+  const formData = new FormData();
+  formData.append('audio', file);
+  formData.append('giftName', giftName);
+  const res = await fetch('/api/upload-sound', { method: 'POST', body: formData });
+  const data = await res.json();
+  if (data.success) {
+    showToast(`✅ Audio untuk "${giftName === '__default__' ? 'Default' : giftName}" berhasil diupload!`, 'success');
+    document.getElementById('giftNameInput').value = '';
+    document.getElementById('audioFile').value = '';
+    document.getElementById('selectedFileName').textContent = '';
+    loadSoundMap();
+  } else {
+    showToast('❌ ' + data.message, 'error');
+  }
+}
+
+async function loadSoundMap() {
+  const res = await fetch('/api/sounds');
+  soundMap = await res.json();
+  renderSoundList();
+}
+
+function renderSoundList() {
+  const list = document.getElementById('soundList');
+  const keys = Object.keys(soundMap);
+  if (!keys.length) {
+    list.innerHTML = '<div class="empty-state">Belum ada custom audio. Upload dulu!</div>';
+    return;
+  }
+  list.innerHTML = keys.map(k => `
+    <div class="sound-item">
+      <div>
+        <div class="sound-item-name">${k === '__default__' ? '🎵 Default (semua gift)' : '🎁 ' + k}</div>
+        <div class="sound-item-file">${soundMap[k]}</div>
+      </div>
+      <div class="sound-item-actions">
+        <button class="btn-play" onclick="playSound('${soundMap[k]}')">▶ Play</button>
+        <button class="btn-delete" onclick="deleteSound('${encodeURIComponent(k)}')">✕ Hapus</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function playSound(url) {
+  const a = new Audio(url);
+  a.play();
+}
+
+async function deleteSound(encodedName) {
+  await fetch(`/api/sounds/${encodedName}`, { method: 'DELETE' });
+  loadSoundMap();
+  showToast('Audio dihapus', 'success');
+}
+
+// ── WEBSOCKET ─────────────────────────────────────
+function initWS() {
+  ws = new WebSocket(`ws://${location.host}`);
+  ws.onmessage = e => {
+    const data = JSON.parse(e.data);
+    handleEvent(data);
+  };
+  ws.onclose = () => setTimeout(initWS, 3000);
+}
+
+function handleEvent(data) {
+  if (data.type === 'status') {
+    const badge = document.getElementById('statusBadge');
+    const txt = document.getElementById('statusText');
+    badge.className = 'status-badge ' + (data.status === 'connected' ? 'connected' : data.status === 'error' ? 'error' : '');
+    txt.textContent = data.message;
+    return;
+  }
+  if (data.type === 'viewers') return;
+  if (data.type === 'ngrok') {
+    const banner = document.getElementById('ngrokBanner');
+    const urlEl  = document.getElementById('ngrokUrl');
+    if (banner && urlEl) {
+      urlEl.textContent = data.url;
+      banner.style.display = 'flex';
+    }
+    return;
+  }
+
+  addEventLog(data);
+  const ttsText = buildTTS(data);
+  if (ttsText) speak(ttsText);
+  if (data.soundUrl) playSound(data.soundUrl);
+}
+
+function copyNgrok() {
+  const url = document.getElementById('ngrokUrl').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ Disalin!';
+    setTimeout(() => btn.textContent = '📋 Salin', 2000);
+  });
+}
+
+function addEventLog(data) {
+  const log = document.getElementById('events-log');
+  const empty = log.querySelector('.empty-state');
+  if (empty) empty.remove();
+
+  const icons = { gift:'🎁', follow:'✅', subscribe:'💜', chat:'💬', share:'📤', like:'❤️', join:'👁️' };
+  const item = document.createElement('div');
+  item.className = `event-item ${data.type}`;
+  const time = new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  let body = '';
+  const name = `<strong>${data.nickname || data.user}</strong>`;
+  if (data.type === 'chat') body = `${name} ${data.comment}<small>${time}</small>`;
+  else if (data.type === 'gift') body = `${name} kirim <strong>${data.giftName}</strong> ×${data.repeatCount||1}<small>${time}</small>`;
+  else if (data.type === 'follow') body = `${name} baru follow!<small>${time}</small>`;
+  else if (data.type === 'subscribe') body = `${name} subscribe!<small>${time}</small>`;
+  else if (data.type === 'share') body = `${name} share live!<small>${time}</small>`;
+  else if (data.type === 'like') body = `${name} like ×${data.likeCount}<small>${time}</small>`;
+  else if (data.type === 'join') body = `${name} baru masuk room!<small>${time}</small>`;
+
+  item.innerHTML = `<span class="event-icon">${icons[data.type]||'📌'}</span><span class="event-body">${body}</span>`;
+  log.insertBefore(item, log.firstChild);
+  if (log.children.length > 100) log.removeChild(log.lastChild);
+}
+
+// ── OVERLAY LINKS ─────────────────────────────────
+function renderOverlays() {
+  const overlays = [
+    { name: 'Alert', desc: 'Gift, follow, subscribe alerts', path: '/overlays/alert.html' },
+    { name: 'Chat', desc: 'Chat overlay real-time', path: '/overlays/chat.html' },
+    { name: 'Goals', desc: 'Progress bar goals', path: '/overlays/goals.html' },
+    { name: 'Leaderboard', desc: 'Top gifters', path: '/overlays/leaderboard.html' },
+    { name: 'Ticker', desc: 'Stats bar bawah layar', path: '/overlays/ticker.html' },
+    { name: 'New Viewer', desc: 'Viewer baru masuk (queue 1 per 1)', path: '/overlays/newviewer.html' },
+    { name: 'Top Tapper ❤️', desc: 'Leaderboard siapa paling banyak tap/like', path: '/overlays/likeboard.html' },
+    { name: 'All-in-One', desc: 'Semua overlay sekaligus', path: '/overlays/all.html' },
+  ];
+  const base = `http://${location.host}`;
+  document.getElementById('overlayGrid').innerHTML = overlays.map(o => `
+    <div class="overlay-card">
+      <h4>${o.name}</h4>
+      <p>${o.desc}</p>
+      <div class="overlay-url">${base}${o.path}</div>
+      <button class="btn-copy" onclick="copyText('${base}${o.path}')">📋 Copy URL</button>
+    </div>
+  `).join('');
+}
+
+// ── CONNECT / DISCONNECT ──────────────────────────
+async function connectTikTok() {
+  const input = document.getElementById('usernameInput');
+  const username = input.value.replace('@','').trim();
+  if (!username) { document.getElementById('welcomeError').textContent = 'Isi username dulu!'; document.getElementById('welcomeError').style.display='block'; return; }
+
+  const res = await fetch('/api/connect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username}) });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('welcome').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initWS();
+    loadTTSSettings();
+    loadSoundMap();
+    renderOverlays();
+    loadVoices();
+  }
+}
+
+async function disconnect() {
+  await fetch('/api/disconnect', { method:'POST' });
+  ws && ws.close();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('welcome').style.display = 'flex';
+  document.getElementById('usernameInput').value = '';
+}
+
+// ── TEST EVENT ────────────────────────────────────
+function testEvent() {
+  const events = [
+    { type:'gift', user:'tester123', nickname:'Tester', giftName:'Rose', repeatCount:5, diamondCount:5 },
+    { type:'follow', user:'newfollower', nickname:'NewFollower' },
+    { type:'chat', user:'viewer1', nickname:'Viewer', comment:'Halo kak!' },
+    { type:'subscribe', user:'subscriber1', nickname:'Subscriber' },
+    { type:'join', user:'newviewer1', nickname:'Penonton Baru', profilePicture:'https://placekitten.com/100/100' },
+  ];
+  const e = events[Math.floor(Math.random()*events.length)];
+  handleEvent(e);
+}
+
+// ── UTILS ─────────────────────────────────────────
+function showTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text);
+  showToast('URL disalin!', 'success');
+}
+
+function showToast(msg, type='') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+document.getElementById('usernameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') connectTikTok();
+});
+</script>
+</body>
+</html>

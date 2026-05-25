@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:transparent; font-family:'Segoe UI',sans-serif; }
+.ticker { position:fixed; bottom:0; left:0; right:0; background:rgba(10,10,20,.9); border-top:2px solid #fe2c55; padding:8px 20px; display:flex; gap:24px; color:#fff; font-size:14px; backdrop-filter:blur(4px); }
+.stat { display:flex; align-items:center; gap:6px; }
+.stat span { color:#25f4ee; font-weight:700; }
+</style></head><body>
+<div class="ticker">
+  <div class="stat">👥 <span id="viewers">0</span> viewers</div>
+  <div class="stat">❤️ <span id="likes">0</span> likes</div>
+  <div class="stat">✅ <span id="follows">0</span> follows</div>
+  <div class="stat">🎁 <span id="gifts">0</span> gifts</div>
+</div>
+<script>
+let likes=0,follows=0,gifts=0;
+const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`);
+ws.onmessage = e => {
+  const d = JSON.parse(e.data);
+  if (d.type==='viewers') document.getElementById('viewers').textContent=d.count;
+  if (d.type==='like') { likes=d.totalLikeCount||likes+d.likeCount; document.getElementById('likes').textContent=likes; }
+  if (d.type==='follow') { follows++; document.getElementById('follows').textContent=follows; }
+  if (d.type==='gift') { gifts+=(d.repeatCount||1); document.getElementById('gifts').textContent=gifts; }
+};
+</script></body></html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:transparent; font-family:'Segoe UI',sans-serif; }
+.goals { position:fixed; top:20px; right:20px; width:280px; display:flex; flex-direction:column; gap:10px; }
+.goal-card { background:rgba(10,10,20,.85); border-radius:12px; padding:14px 16px; color:#fff; backdrop-filter:blur(4px); }
+.goal-label { font-size:12px; color:#888; margin-bottom:6px; text-transform:uppercase; letter-spacing:.08em; }
+.goal-value { font-size:20px; font-weight:700; margin-bottom:8px; }
+.goal-bar-bg { background:#222; border-radius:4px; height:6px; overflow:hidden; }
+.goal-bar { height:100%; border-radius:4px; background:linear-gradient(90deg,#fe2c55,#25f4ee); transition:width .5s ease; }
+</style></head><body>
+<div class="goals">
+  <div class="goal-card">
+    <div class="goal-label">👥 Viewers</div>
+    <div class="goal-value" id="viewers">0</div>
+  </div>
+  <div class="goal-card">
+    <div class="goal-label">❤️ Total Likes</div>
+    <div class="goal-value" id="likes">0</div>
+    <div class="goal-bar-bg"><div class="goal-bar" id="likesBar" style="width:0%"></div></div>
+  </div>
+  <div class="goal-card">
+    <div class="goal-label">✅ New Follows</div>
+    <div class="goal-value" id="follows">0</div>
+    <div class="goal-bar-bg"><div class="goal-bar" id="followsBar" style="width:0%;background:linear-gradient(90deg,#00e676,#25f4ee)"></div></div>
+  </div>
+</div>
+<script>
+let follows=0, likes=0, goalFollows=100, goalLikes=5000;
+const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`);
+ws.onmessage = e => {
+  const d = JSON.parse(e.data);
+  if (d.type==='viewers') document.getElementById('viewers').textContent=d.count;
+  if (d.type==='like') { likes=d.totalLikeCount||likes+d.likeCount; document.getElementById('likes').textContent=likes; document.getElementById('likesBar').style.width=Math.min(100,likes/goalLikes*100)+'%'; }
+  if (d.type==='follow') { follows++; document.getElementById('follows').textContent=follows; document.getElementById('followsBar').style.width=Math.min(100,follows/goalFollows*100)+'%'; }
+};
+</script></body></html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:transparent; font-family:'Segoe UI',sans-serif; overflow:hidden; }
+#alert-container { position:fixed; bottom:40px; right:40px; width:380px; }
+.alert-item {
+  background:linear-gradient(135deg,#1a1a2e,#16213e);
+  border:1px solid #fe2c55;
+  border-radius:16px;
+  padding:16px 20px;
+  margin-top:10px;
+  display:flex; align-items:center; gap:14px;
+  animation: slideIn .4s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: 0 8px 32px #fe2c5540;
+  color:#fff;
+}
+.alert-item.follow { border-color:#00e676; box-shadow:0 8px 32px #00e67640; }
+.alert-item.subscribe { border-color:#aa44ff; box-shadow:0 8px 32px #aa44ff40; }
+.alert-item.share { border-color:#ff9800; box-shadow:0 8px 32px #ff980040; }
+.alert-icon { font-size:32px; flex-shrink:0; }
+.alert-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; opacity:.7; }
+.alert-body { font-size:15px; font-weight:600; }
+.alert-body span { color:#25f4ee; }
+@keyframes slideIn {
+  from { opacity:0; transform:translateX(60px) scale(.9); }
+  to { opacity:1; transform:translateX(0) scale(1); }
+}
+@keyframes fadeOut {
+  to { opacity:0; transform:translateX(60px); max-height:0; margin:0; padding:0; }
+}
+</style>
+</head><body>
+<div id="alert-container"></div>
+<script>
+const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`);
+ws.onmessage = e => {
+  const d = JSON.parse(e.data);
+  if (['gift','follow','subscribe','share'].includes(d.type)) showAlert(d);
+};
+
+function showAlert(d) {
+  const container = document.getElementById('alert-container');
+  const div = document.createElement('div');
+  const name = d.nickname || d.user;
+  const configs = {
+    gift: { icon:'🎁', title:'GIFT', body:`<span>${name}</span> kirim <span>${d.giftName}</span> ×${d.repeatCount||1}` },
+    follow: { icon:'✅', title:'FOLLOW BARU', body:`<span>${name}</span> baru follow!` },
+    subscribe: { icon:'💜', title:'SUBSCRIBE', body:`<span>${name}</span> subscribe sekarang!` },
+    share: { icon:'📤', title:'SHARE', body:`<span>${name}</span> share live kita!` },
+  };
+  const c = configs[d.type];
+  div.className = `alert-item ${d.type}`;
+  div.innerHTML = `<span class="alert-icon">${c.icon}</span><div><div class="alert-title">${c.title}</div><div class="alert-body">${c.body}</div></div>`;
+  container.appendChild(div);
+  setTimeout(() => { div.style.animation='fadeOut .4s ease forwards'; setTimeout(()=>div.remove(),400); }, 5000);
+}
+</script>
+</body></html>

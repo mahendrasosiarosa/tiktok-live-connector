@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:transparent; overflow:hidden; width:100vw; height:100vh; }
+
+/* scanline */
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
+  background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,255,.012) 2px,rgba(0,255,255,.012) 4px);
+}
+
+#container {
+  position:fixed;
+  bottom: 40px; left: 32px;
+  width: 380px;
+}
+
+/* ── CARD ── */
+.viewer-card {
+  display:flex;
+  align-items:center;
+  gap:14px;
+  position:relative;
+  overflow:hidden;
+  opacity:0;
+  animation: slideIn .55s cubic-bezier(.22,1,.36,1) forwards;
+}
+
+@keyframes slideIn {
+  0%   { opacity:0; transform: translateX(-60px) skewX(-8deg) scale(.92); }
+  55%  { opacity:1; transform: translateX(8px) skewX(2deg) scale(1.02); }
+  100% { opacity:1; transform: translateX(0) skewX(0) scale(1); }
+}
+@keyframes slideOut {
+  to { opacity:0; transform: translateX(-40px) skewX(-6deg) scale(.9); }
+}
+
+/* glitch bars deco */
+.viewer-card::before, .viewer-card::after { display:none; }
+
+/* ── BG PANEL ── */
+.card-bg {
+  position:absolute; inset:0;
+  background: linear-gradient(110deg, rgba(0,8,20,.93) 0%, rgba(0,20,35,.9) 100%);
+  border: 1px solid rgba(0,255,255,.25);
+  border-left: 3px solid #00ffff;
+  border-radius: 0 14px 14px 0;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 0 30px rgba(0,255,255,.1), 0 8px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(0,255,255,.08);
+  overflow:hidden;
+}
+/* sweep light */
+.card-bg::before {
+  content:''; position:absolute;
+  top:-100%; left:0; right:0; height:50%;
+  background:linear-gradient(180deg,transparent,rgba(0,255,255,.05),transparent);
+  animation: bgSweep 2.5s ease forwards;
+}
+@keyframes bgSweep { 0%{top:-50%} 100%{top:150%} }
+
+/* corner accent */
+.card-bg::after {
+  content:''; position:absolute;
+  top:6px; right:6px;
+  width:10px; height:10px;
+  border-top:1.5px solid #00ffff88;
+  border-right:1.5px solid #00ffff88;
+}
+
+/* ── AVATAR ── */
+.avatar-outer {
+  position:relative; flex-shrink:0; z-index:2;
+  margin:12px 0 12px 12px;
+}
+.avatar-ring {
+  width:56px; height:56px; border-radius:50%;
+  position:relative; display:flex; align-items:center; justify-content:center;
+}
+.avatar-ring::before {
+  content:''; position:absolute; inset:-3px; border-radius:50%;
+  background: conic-gradient(#00ffff 0%, #ff00ff 40%, #00ffff 70%, #ffff00 85%, #00ffff 100%);
+  animation: spinRing 2s linear infinite; z-index:0;
+}
+.avatar-ring::after {
+  content:''; position:absolute; inset:-1px; border-radius:50%;
+  background:#040d1a; z-index:1;
+}
+@keyframes spinRing { to{transform:rotate(360deg)} }
+
+.avatar {
+  width:50px; height:50px; border-radius:50%;
+  object-fit:cover; display:block;
+  position:relative; z-index:2; background:#111;
+}
+.avatar-fallback {
+  width:50px; height:50px; border-radius:50%;
+  background:linear-gradient(135deg,#0ff2,#f0f2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px; position:relative; z-index:2;
+}
+
+/* ping dot */
+.ping-dot {
+  position:absolute; bottom:2px; right:2px; z-index:3;
+  width:12px; height:12px; border-radius:50%;
+  background:#00ffff;
+  box-shadow: 0 0 8px #00ffff;
+  animation: pingPulse 1.2s ease-in-out infinite;
+}
+@keyframes pingPulse {
+  0%,100% { transform:scale(1); opacity:1; }
+  50%     { transform:scale(1.4); opacity:.6; }
+}
+
+/* ── TEXT ── */
+.card-info {
+  flex:1; min-width:0; z-index:2;
+  padding:14px 16px 14px 2px;
+}
+.label-row {
+  font-family:'Share Tech Mono', monospace;
+  font-size:9px; letter-spacing:.18em;
+  color:#00ffff; opacity:.75;
+  text-transform:uppercase;
+  margin-bottom:4px;
+  display:flex; align-items:center; gap:6px;
+}
+.label-row::before {
+  content:''; display:inline-block;
+  width:4px; height:4px; border-radius:50%;
+  background:#00ffff; box-shadow:0 0 6px #00ffff;
+  animation: blinkDot .8s step-end infinite;
+}
+@keyframes blinkDot { 50%{opacity:0} }
+
+.viewer-name {
+  font-family:'Orbitron', monospace;
+  font-size:15px; font-weight:700;
+  color:#fff;
+  text-shadow: 0 0 12px rgba(0,255,255,.4);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  letter-spacing:.04em;
+}
+
+.sub-row {
+  font-family:'Share Tech Mono', monospace;
+  font-size:10px; color:#ffffff44;
+  margin-top:3px; letter-spacing:.06em;
+}
+
+/* progress bar countdown */
+.timer-bar-wrap {
+  position:absolute; bottom:0; left:0; right:0; height:2px;
+  background:rgba(0,255,255,.08); z-index:3;
+}
+.timer-bar {
+  height:100%;
+  background:linear-gradient(90deg,#00ffff,#ff00ff,#ffff00);
+  box-shadow:0 0 6px #00ffff;
+  width:100%;
+  transition:width 5s linear;
+}
+
+/* glitch flash */
+.glitch-flash {
+  animation: glitchFlash .2s steps(2) 1;
+}
+@keyframes glitchFlash {
+  0%  { filter:hue-rotate(0deg) brightness(1); transform:translateX(0); }
+  30% { filter:hue-rotate(120deg) brightness(2); transform:translateX(-3px); }
+  60% { filter:hue-rotate(-120deg) brightness(1.5); transform:translateX(3px); }
+  100%{ filter:none; transform:translateX(0); }
+}
+</style>
+</head>
+<body>
+<div id="container"></div>
+<script>
+const LIFE = 5000;
+const queue = [];
+let busy = false;
+
+function rnd(a,b){ return Math.floor(Math.random()*(b-a))+a; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function enqueue(data){ queue.push(data); if(!busy) processNext(); }
+
+function processNext(){
+  if(queue.length===0){ busy=false; return; }
+  busy=true;
+  showViewer(queue.shift());
+}
+
+function showViewer(d){
+  const container = document.getElementById('container');
+  const old = container.querySelector('.viewer-card');
+  if(old) old.remove();
+
+  const name = d.nickname || d.user || 'Penonton Baru';
+  const pic  = d.profilePicture || '';
+
+  const avatarHTML = pic
+    ? `<img class="avatar" src="${pic}" onerror="this.outerHTML='<div class=\\'avatar-fallback\\'>◈</div>'" alt="">`
+    : `<div class="avatar-fallback">◈</div>`;
+
+  const hexId = '#' + Math.floor(Math.random()*0xFFFF).toString(16).toUpperCase().padStart(4,'0');
+  const ts    = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  const card = document.createElement('div');
+  card.className = 'viewer-card';
+  card.innerHTML = `
+    <div class="card-bg"></div>
+    <div class="avatar-outer">
+      <div class="avatar-ring">${avatarHTML}</div>
+      <div class="ping-dot"></div>
+    </div>
+    <div class="card-info">
+      <div class="label-row">VIEWER BARU MASUK</div>
+      <div class="viewer-name">${esc(name)}</div>
+      <div class="sub-row">SYS_ID:${hexId} · ${ts}</div>
+    </div>
+    <div class="timer-bar-wrap"><div class="timer-bar" id="tbar"></div></div>
+  `;
+
+  container.appendChild(card);
+
+  // Glitch flash saat masuk
+  setTimeout(()=>{
+    card.classList.add('glitch-flash');
+    setTimeout(()=>card.classList.remove('glitch-flash'),250);
+  }, rnd(300,700));
+
+  // Countdown bar
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      const tb = card.querySelector('#tbar');
+      if(tb){ tb.style.width='0%'; }
+    });
+  });
+
+  // Remove & next
+  setTimeout(()=>{
+    if(!card.parentNode){ processNext(); return; }
+    card.style.animation='slideOut .4s ease forwards';
+    setTimeout(()=>{ card.remove(); processNext(); }, 420);
+  }, LIFE);
+}
+
+function connect(){
+  const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`);
+  ws.onmessage = e => {
+    const d = JSON.parse(e.data);
+    if(d.type==='join') enqueue(d);
+  };
+  ws.onclose = ()=>setTimeout(connect,3000);
+}
+connect();
+</script>
+</body></html>

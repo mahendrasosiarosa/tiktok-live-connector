@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:transparent; font-family:'Segoe UI',sans-serif; }
+.lb { position:fixed; top:20px; left:20px; width:260px; background:rgba(10,10,20,.85); border-radius:16px; padding:16px; color:#fff; backdrop-filter:blur(4px); }
+.lb-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#ffd600; margin-bottom:12px; }
+.lb-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #ffffff10; }
+.lb-rank { font-size:18px; width:28px; text-align:center; }
+.lb-name { flex:1; font-size:14px; font-weight:600; }
+.lb-diamonds { font-size:12px; color:#ffd600; }
+</style></head><body>
+<div class="lb">
+  <div class="lb-title">🏆 Top Gifters</div>
+  <div id="lb-list"></div>
+</div>
+<script>
+const gifters = {};
+const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`);
+ws.onmessage = e => {
+  const d = JSON.parse(e.data);
+  if (d.type==='gift') {
+    const key = d.user;
+    gifters[key] = { name: d.nickname||d.user, diamonds: (gifters[key]?.diamonds||0)+(d.diamondCount||0)*(d.repeatCount||1) };
+    render();
+  }
+};
+function render() {
+  const sorted = Object.values(gifters).sort((a,b)=>b.diamonds-a.diamonds).slice(0,5);
+  const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+  document.getElementById('lb-list').innerHTML = sorted.map((g,i)=>
+    `<div class="lb-item"><span class="lb-rank">${medals[i]}</span><span class="lb-name">${g.name}</span><span class="lb-diamonds">💎 ${g.diamonds}</span></div>`
+  ).join('');
+}
+</script></body></html>
